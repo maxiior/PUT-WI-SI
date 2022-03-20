@@ -155,7 +155,7 @@ for i in paths:
     rh_array = np.array([])
     tsp.read_data(i)
 
-    for j in tqdm(range(0, 10)):
+    for j in tqdm(range(0, 100)):
         nn_array = np.append(nn_array, tsp.get_scores(tsp.nearest_neighbor(j)))
         gc_array = np.append(gc_array, tsp.get_scores(tsp.greedy_cycle(j)))
         rh_array = np.append(
