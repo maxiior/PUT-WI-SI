@@ -43,10 +43,18 @@ class TSP_Solvers:
 
         while vertexes:
             for c in cycles:
-                best = vertexes[np.argmin(
+                best_end = vertexes[np.argmin(
                     self.distance_matrix[c[-1], vertexes])]
-                c.append(best)
-                vertexes.remove(best)
+                end_value = self.distance_matrix[c[-1], best_end]
+                best_front = vertexes[np.argmin(
+                    self.distance_matrix[c[0], vertexes])]
+                front_value = self.distance_matrix[c[0], best_front]
+                if front_value < end_value:
+                    c.insert(0, best_front)
+                    vertexes.remove(best_front)
+                else:
+                    c.insert(-1, best_end)
+                    vertexes.remove(best_end)
         return cycles
 
     def greedy_cycle(self, v1, random=False):
@@ -147,7 +155,7 @@ for i in paths:
     rh_array = np.array([])
     tsp.read_data(i)
 
-    for j in tqdm(range(0, 100)):
+    for j in tqdm(range(0, 10)):
         nn_array = np.append(nn_array, tsp.get_scores(tsp.nearest_neighbor(j)))
         gc_array = np.append(gc_array, tsp.get_scores(tsp.greedy_cycle(j)))
         rh_array = np.append(
