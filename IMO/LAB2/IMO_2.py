@@ -322,13 +322,13 @@ if __name__ == '__main__':
     print(np.min(a_rs), np.mean(a_rs), np.max(a_rs))
     print(np.min(a_ss), np.mean(a_ss), np.max(a_ss))
 
-    # for i in [gs_cycles, rs_cycles, ss_cycles]:
-    #     plt.subplots()
-    #     ls.make_visualizations(i[0], color='blue')
-    #     ls.make_visualizations(i[1], color='yellow')
-    #     plt.scatter(ls.coordinate_matrix[:, 1],
-    #                 ls.coordinate_matrix[:, 2], color='black')
-    #     plt.show()
+    for i in [gs_cycles, rs_cycles, ss_cycles]:
+        plt.subplots()
+        ls.make_visualizations(i[0], color='blue')
+        ls.make_visualizations(i[1], color='yellow')
+        plt.scatter(ls.coordinate_matrix[:, 1],
+                    ls.coordinate_matrix[:, 2], color='black')
+        plt.show()
 
     print("REGRET --- GreedySearch (V) | RandomSearch | SteepestSearch (V)")
 
@@ -348,13 +348,13 @@ if __name__ == '__main__':
     print(np.min(a_rs), np.mean(a_rs), np.max(a_rs))
     print(np.min(a_ss), np.mean(a_ss), np.max(a_ss))
 
-    # for i in [gs_cycles, rs_cycles, ss_cycles]:
-    #     plt.subplots()
-    #     ls.make_visualizations(i[0], color='blue')
-    #     ls.make_visualizations(i[1], color='yellow')
-    #     plt.scatter(ls.coordinate_matrix[:, 1],
-    #                 ls.coordinate_matrix[:, 2], color='black')
-    #     plt.show()
+    for i in [gs_cycles, rs_cycles, ss_cycles]:
+        plt.subplots()
+        ls.make_visualizations(i[0], color='blue')
+        ls.make_visualizations(i[1], color='yellow')
+        plt.scatter(ls.coordinate_matrix[:, 1],
+                    ls.coordinate_matrix[:, 2], color='black')
+        plt.show()
 
     gs = GreedySearch(False, ls)
     ss = SteepestSearch(False, ls)
@@ -373,13 +373,13 @@ if __name__ == '__main__':
     print(np.min(a_gs), np.mean(a_gs), np.max(a_gs))
     print(np.min(a_ss), np.mean(a_ss), np.max(a_ss))
 
-    # for i in [gs_cycles, ss_cycles]:
-    #     plt.subplots()
-    #     ls.make_visualizations(i[0], color='blue')
-    #     ls.make_visualizations(i[1], color='yellow')
-    #     plt.scatter(ls.coordinate_matrix[:, 1],
-    #                 ls.coordinate_matrix[:, 2], color='black')
-    #     plt.show()
+    for i in [gs_cycles, ss_cycles]:
+        plt.subplots()
+        ls.make_visualizations(i[0], color='blue')
+        ls.make_visualizations(i[1], color='yellow')
+        plt.scatter(ls.coordinate_matrix[:, 1],
+                    ls.coordinate_matrix[:, 2], color='black')
+        plt.show()
 
     print("REGRET --- GreedySearch (E) | SteepestSearch (E)")
 
@@ -401,10 +401,10 @@ if __name__ == '__main__':
     print(np.min(a_gs), np.mean(a_gs), np.max(a_gs))
     print(np.min(a_ss), np.mean(a_ss), np.max(a_ss))
 
-    # for i in [gs_cycles_a, ss_cycles_a]:
-    #     plt.subplots()
-    #     ls.make_visualizations(i[np.argmin(a_gs)][0], color='blue')
-    #     ls.make_visualizations(i[np.argmin(a_ss)][1], color='yellow')
-    #     plt.scatter(ls.coordinate_matrix[:, 1],
-    #                 ls.coordinate_matrix[:, 2], color='black')
-    #     plt.show()
+    for i in [gs_cycles_a, ss_cycles_a]:
+        plt.subplots()
+        ls.make_visualizations(i[np.argmin(a_gs)][0], color='blue')
+        ls.make_visualizations(i[np.argmin(a_ss)][1], color='yellow')
+        plt.scatter(ls.coordinate_matrix[:, 1],
+                    ls.coordinate_matrix[:, 2], color='black')
+        plt.show()
