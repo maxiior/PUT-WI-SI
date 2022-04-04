@@ -298,7 +298,7 @@ if __name__ == '__main__':
     paths = ["C:/Users/Maksim/Desktop/repos/PUT-WI-SI/IMO/LAB1/kroA100.txt",
              "C:/Users/Maksim/Desktop/repos/PUT-WI-SI/IMO/LAB1/kroB100.txt"]
 
-    ls.read_data(paths[0])
+    ls.read_data(paths[1])
 
     gs = GreedySearch(True, ls)
     rs = RandomSearch(ls)
@@ -306,35 +306,105 @@ if __name__ == '__main__':
 
     print("RANDOM --- GreedySearch (V) | RandomSearch | SteepestSearch (V)")
 
-    t, gs_cycles = gs.greedy_search(ls.get_random_cycles())
-    rs_cycles = rs.random_search(ls.get_random_cycles(), t)
-    t, ss_cycles = ss.steepest_search(ls.get_random_cycles())
-    print(ls.get_scores(gs_cycles))
-    print(ls.get_scores(rs_cycles))
-    print(ls.get_scores(ss_cycles))
+    a_gs = []
+    a_rs = []
+    a_ss = []
+
+    for _ in tqdm(range(10)):
+        t, gs_cycles = gs.greedy_search(ls.get_random_cycles())
+        rs_cycles = rs.random_search(ls.get_random_cycles(), t)
+        t, ss_cycles = ss.steepest_search(ls.get_random_cycles())
+
+        a_gs.append(ls.get_scores(gs_cycles))
+        a_rs.append(ls.get_scores(rs_cycles))
+        a_ss.append(ls.get_scores(ss_cycles))
+    print(np.min(a_gs), np.mean(a_gs), np.max(a_gs))
+    print(np.min(a_rs), np.mean(a_rs), np.max(a_rs))
+    print(np.min(a_ss), np.mean(a_ss), np.max(a_ss))
+
+    # for i in [gs_cycles, rs_cycles, ss_cycles]:
+    #     plt.subplots()
+    #     ls.make_visualizations(i[0], color='blue')
+    #     ls.make_visualizations(i[1], color='yellow')
+    #     plt.scatter(ls.coordinate_matrix[:, 1],
+    #                 ls.coordinate_matrix[:, 2], color='black')
+    #     plt.show()
 
     print("REGRET --- GreedySearch (V) | RandomSearch | SteepestSearch (V)")
 
-    t, gs_cycles = gs.greedy_search(ls.regret_heuristics(5))
-    rs_cycles = rs.random_search(ls.regret_heuristics(5), t)
-    t, ss_cycles = ss.steepest_search(ls.regret_heuristics(5))
-    print(ls.get_scores(gs_cycles))
-    print(ls.get_scores(rs_cycles))
-    print(ls.get_scores(ss_cycles))
+    a_gs = []
+    a_rs = []
+    a_ss = []
+
+    for i in tqdm(range(10)):
+        t, gs_cycles = gs.greedy_search(ls.regret_heuristics(5))
+        rs_cycles = rs.random_search(ls.regret_heuristics(5), t)
+        t, ss_cycles = ss.steepest_search(ls.regret_heuristics(5))
+
+        a_gs.append(ls.get_scores(gs_cycles))
+        a_rs.append(ls.get_scores(rs_cycles))
+        a_ss.append(ls.get_scores(ss_cycles))
+    print(np.min(a_gs), np.mean(a_gs), np.max(a_gs))
+    print(np.min(a_rs), np.mean(a_rs), np.max(a_rs))
+    print(np.min(a_ss), np.mean(a_ss), np.max(a_ss))
+
+    # for i in [gs_cycles, rs_cycles, ss_cycles]:
+    #     plt.subplots()
+    #     ls.make_visualizations(i[0], color='blue')
+    #     ls.make_visualizations(i[1], color='yellow')
+    #     plt.scatter(ls.coordinate_matrix[:, 1],
+    #                 ls.coordinate_matrix[:, 2], color='black')
+    #     plt.show()
 
     gs = GreedySearch(False, ls)
     ss = SteepestSearch(False, ls)
 
     print("RANDOM --- GreedySearch (E) | SteepestSearch (E)")
 
-    t, gs_cycles = gs.greedy_search(ls.get_random_cycles())
-    t, ss_cycles = ss.steepest_search(ls.get_random_cycles())
-    print(ls.get_scores(gs_cycles))
-    print(ls.get_scores(ss_cycles))
+    a_gs = []
+    a_ss = []
+
+    for i in tqdm(range(10)):
+        t, gs_cycles = gs.greedy_search(ls.get_random_cycles())
+        t, ss_cycles = ss.steepest_search(ls.get_random_cycles())
+
+        a_gs.append(ls.get_scores(gs_cycles))
+        a_ss.append(ls.get_scores(ss_cycles))
+    print(np.min(a_gs), np.mean(a_gs), np.max(a_gs))
+    print(np.min(a_ss), np.mean(a_ss), np.max(a_ss))
+
+    # for i in [gs_cycles, ss_cycles]:
+    #     plt.subplots()
+    #     ls.make_visualizations(i[0], color='blue')
+    #     ls.make_visualizations(i[1], color='yellow')
+    #     plt.scatter(ls.coordinate_matrix[:, 1],
+    #                 ls.coordinate_matrix[:, 2], color='black')
+    #     plt.show()
 
     print("REGRET --- GreedySearch (E) | SteepestSearch (E)")
 
-    t, gs_cycles = gs.greedy_search(ls.regret_heuristics(5))
-    t, ss_cycles = ss.steepest_search(ls.regret_heuristics(5))
-    print(ls.get_scores(gs_cycles))
-    print(ls.get_scores(ss_cycles))
+    a_gs = []
+    a_ss = []
+
+    gs_cycles_a = []
+    ss_cycles_a = []
+
+    for i in tqdm(range(10)):
+        t, gs_cycles = gs.greedy_search(ls.regret_heuristics(i))
+        t, ss_cycles = ss.steepest_search(ls.regret_heuristics(i))
+
+        a_gs.append(ls.get_scores(gs_cycles))
+        a_ss.append(ls.get_scores(ss_cycles))
+        gs_cycles_a.append(gs_cycles)
+        ss_cycles_a.append(ss_cycles)
+
+    print(np.min(a_gs), np.mean(a_gs), np.max(a_gs))
+    print(np.min(a_ss), np.mean(a_ss), np.max(a_ss))
+
+    # for i in [gs_cycles_a, ss_cycles_a]:
+    #     plt.subplots()
+    #     ls.make_visualizations(i[np.argmin(a_gs)][0], color='blue')
+    #     ls.make_visualizations(i[np.argmin(a_ss)][1], color='yellow')
+    #     plt.scatter(ls.coordinate_matrix[:, 1],
+    #                 ls.coordinate_matrix[:, 2], color='black')
+    #     plt.show()
