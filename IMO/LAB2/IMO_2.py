@@ -145,13 +145,13 @@ class LocalSearch:
                                l], cycle[i], cycle[j], cycle[(j+1) % l]
         return matrix[a, c] + matrix[b, d] - matrix[a, b] - matrix[c, d]
 
-    def replace_vertices_outside_delta_score(self, paths, i, j):
+    def replace_vertices_outside_delta_score(self, cycles, i, j):
         score = 0
         matrix = self.distance_matrix
         for x, y in enumerate([i, j]):
-            l = len(paths[x])
-            a, b, c = paths[x][(y - 1) % l], paths[x][y], paths[x][(y+1) % l]
-            v2 = paths[1-x][i if y == j else j]
+            l = len(cycles[x])
+            a, b, c = cycles[x][(y - 1) % l], cycles[x][y], cycles[x][(y+1) % l]
+            v2 = cycles[1-x][i if y == j else j]
             score += matrix[a, v2] + matrix[v2, c] - \
                 matrix[a, b] - matrix[b, c]
         return score
