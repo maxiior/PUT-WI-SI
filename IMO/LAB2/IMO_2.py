@@ -150,7 +150,8 @@ class LocalSearch:
         matrix = self.distance_matrix
         for x, y in enumerate([i, j]):
             l = len(cycles[x])
-            a, b, c = cycles[x][(y - 1) % l], cycles[x][y], cycles[x][(y+1) % l]
+            a, b, c = cycles[x][(y - 1) %
+                                l], cycles[x][y], cycles[x][(y+1) % l]
             v2 = cycles[1-x][i if y == j else j]
             score += matrix[a, v2] + matrix[v2, c] - \
                 matrix[a, b] - matrix[b, c]
@@ -298,7 +299,7 @@ if __name__ == '__main__':
     paths = ["C:/Users/Maksim/Desktop/repos/PUT-WI-SI/IMO/LAB1/kroA100.txt",
              "C:/Users/Maksim/Desktop/repos/PUT-WI-SI/IMO/LAB1/kroB100.txt"]
 
-    ls.read_data(paths[1])
+    ls.read_data(paths[0])
 
     gs = GreedySearch(True, ls)
     rs = RandomSearch(ls)
@@ -310,6 +311,7 @@ if __name__ == '__main__':
     a_rs = []
     a_ss = []
 
+    start = time.time()
     for _ in tqdm(range(10)):
         t, gs_cycles = gs.greedy_search(ls.get_random_cycles())
         rs_cycles = rs.random_search(ls.get_random_cycles(), t)
@@ -321,6 +323,8 @@ if __name__ == '__main__':
     print(np.min(a_gs), np.mean(a_gs), np.max(a_gs))
     print(np.min(a_rs), np.mean(a_rs), np.max(a_rs))
     print(np.min(a_ss), np.mean(a_ss), np.max(a_ss))
+
+    print(time.time() - start)
 
     for i in [gs_cycles, rs_cycles, ss_cycles]:
         plt.subplots()
@@ -335,7 +339,7 @@ if __name__ == '__main__':
     a_gs = []
     a_rs = []
     a_ss = []
-
+    start = time.time()
     for i in tqdm(range(10)):
         t, gs_cycles = gs.greedy_search(ls.regret_heuristics(5))
         rs_cycles = rs.random_search(ls.regret_heuristics(5), t)
@@ -347,6 +351,8 @@ if __name__ == '__main__':
     print(np.min(a_gs), np.mean(a_gs), np.max(a_gs))
     print(np.min(a_rs), np.mean(a_rs), np.max(a_rs))
     print(np.min(a_ss), np.mean(a_ss), np.max(a_ss))
+
+    print(time.time() - start)
 
     for i in [gs_cycles, rs_cycles, ss_cycles]:
         plt.subplots()
@@ -363,7 +369,7 @@ if __name__ == '__main__':
 
     a_gs = []
     a_ss = []
-
+    start = time.time()
     for i in tqdm(range(10)):
         t, gs_cycles = gs.greedy_search(ls.get_random_cycles())
         t, ss_cycles = ss.steepest_search(ls.get_random_cycles())
@@ -372,6 +378,8 @@ if __name__ == '__main__':
         a_ss.append(ls.get_scores(ss_cycles))
     print(np.min(a_gs), np.mean(a_gs), np.max(a_gs))
     print(np.min(a_ss), np.mean(a_ss), np.max(a_ss))
+
+    print(time.time() - start)
 
     for i in [gs_cycles, ss_cycles]:
         plt.subplots()
@@ -388,7 +396,7 @@ if __name__ == '__main__':
 
     gs_cycles_a = []
     ss_cycles_a = []
-
+    start = time.time()
     for i in tqdm(range(10)):
         t, gs_cycles = gs.greedy_search(ls.regret_heuristics(i))
         t, ss_cycles = ss.steepest_search(ls.regret_heuristics(i))
@@ -397,6 +405,8 @@ if __name__ == '__main__':
         a_ss.append(ls.get_scores(ss_cycles))
         gs_cycles_a.append(gs_cycles)
         ss_cycles_a.append(ss_cycles)
+
+    print(time.time() - start)
 
     print(np.min(a_gs), np.mean(a_gs), np.max(a_gs))
     print(np.min(a_ss), np.mean(a_ss), np.max(a_ss))
