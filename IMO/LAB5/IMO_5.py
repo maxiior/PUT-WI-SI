@@ -76,7 +76,8 @@ class LocalSearch:
 
     def get_scores(self, matrix):
         matrix = deepcopy(matrix)
-        matrix += [matrix[0]]
+        matrix[0] += [matrix[0][0]]
+        matrix[1] += [matrix[1][0]]
         s1 = sum(self.distance_matrix[matrix[0][i], matrix[0][i+1]]
                  for i in range(len(matrix[0]) - 1))
         s2 = sum(self.distance_matrix[matrix[1][i], matrix[1][i+1]]
@@ -188,120 +189,93 @@ class EvolutionSearch:
     def __init__(self, local_search):
         self.ls = local_search
 
-    # def combine(self, sol1, sol2):
-    #     sol1, sol2 = deepcopy(sol1), deepcopy(sol2)
+    def combine(self, sol1, sol2):
+        sol1, sol2 = deepcopy(sol1), deepcopy(sol2)
+        
+        remaining = []
+        for cyc1 in sol1:
+            n = len(cyc1)
+            if n == 1:
+                continue
+            for i in range(n):
+                p, q = cyc1[i], cyc1[(i+1)%n]
+                if p == -1 or q == -1 or p == q:
+                    continue
+                found = False
+                for cyc2 in sol2:
+                    m = len(cyc2)
+                    for j in range(m):
+                        u, v = cyc2[j], cyc2[(j+1)%m]
+                        if (p == u and q == v) or (p == v and q == u):
+                            found = True
+                            break
+                    if found:
+                        break
+                        
+                if not found:
+                    remaining.append(cyc1[i])
+                    remaining.append(cyc1[(i+1)%n])
+                    cyc1[i] = -1
+                    cyc1[(i+1)%n] = -1
+                    
+            for i in range(1, n):
+                x, y, z = cyc1[(i-1)%n], cyc1[i], cyc1[(i+1)%n]
+                if x == z == -1 and y != -1:
+                    remaining.append(y)
+                    cyc1[i] = -1
+                    
+            for i in range(1, n):
+                x = cyc1[i]
+                if x != -1 and np.random.rand() < 0.2:
+                    remaining.append(x)
+                    cyc1[i] = -1
+                    
+        a = [x for x in sol1[0] if x != -1]
+        b = [x for x in sol1[1] if x != -1]
+        return self.ls.regret_heuristics([a, b], remaining)
 
-    #     remaining = []
-
-    #     for cyc1 in sol1:
-    #         n = len(cyc1)
-    #         if n == 1:
-    #             continue
-    #         for i in range(n):
-    #             p, q = cyc1[i], cyc1[(i+1)%n]
-    #             if p == -1 or q == -1 or p == q:
-    #                 continue
-    #             found = False
-    #             for cyc2 in sol2:
-    #                 m = len(cyc2)
-    #                 for j in range(m):
-    #                     u, v = cyc2[j], cyc2[(j+1)%m]
-    #                     if (p == u and q == v) or (p == v and q == u):
-    #                         found = True
-    #                         break
-    #                 if found:
-    #                     break
-
-    #             if not found:
-    #                 remaining.append(cyc1[i])
-    #                 remaining.append(cyc1[(i+1)%n])
-    #                 cyc1[i] = -1
-    #                 cyc1[(i+1)%n] = -1
-
-    #         for i in range(1, n):
-    #             x, y, z = cyc1[(i-1)%n], cyc1[i], cyc1[(i+1)%n]
-    #             if x == z == -1 and y != -1:
-    #                 remaining.append(y)
-    #                 cyc1[i] = -1
-
-    #         for i in range(1, n):
-    #             x = cyc1[i]
-    #             if x != -1 and np.random.rand() < 0.2:
-    #                 remaining.append(x)
-    #                 cyc1[i] = -1
-
-    #     a = [x for x in sol1[0] if x != -1]
-    #     b = [x for x in sol1[1] if x != -1]
-    #     assert len(a) + len(b) + len(remaining) == 200
-    #     return solve_regret_init(self.cities, (a, b), remaining)[1]
-
-    # def perturb(self, cycles, strength=0.2):
-    #     to_destroy = int(strength*len(self.cities)/2)
-
-    #     remaining = []
-    #     for cycle in cycles:
-    #         n = len(cycle)
-    #         destroy_begin = random.randint(0, n - 1)
-    #         remaining.extend(cycle[destroy_begin : destroy_begin + to_destroy])
-    #         cycle[destroy_begin : destroy_begin + to_destroy] = []
-
-    #         if destroy_begin + to_destroy > n:
-    #             remaining.extend(cycle[0 : destroy_begin + to_destroy - n])
-    #             cycle[0 : destroy_begin + to_destroy - n] = []
-
-    #     return solve_regret_init(self.cities, cycles, remaining)[1]
-
-    def search(self, *, population_size=3, limit=10, min_diff=40, plot=False, mutate=40, patience=300, with_local=True):
+    def search(self, population_size=3, limit=10, score_threshold=40, iterations_threshold=300, local=True):
         ss = SteepestSearch(self.ls)
-
-        populations = [(population, self.ls.get_scores(population)) for population in [
-            ss.search(self.ls.get_random_cycles()) for _ in tqdm(range(population_size))]]
+        populations = np.array([(i, self.ls.get_scores(i)) for i in [ss.search(self.ls.get_random_cycles()) for _ in tqdm(range(population_size))]])
 
         start = time.time()
         best_scores = []
         worst_scores = []
 
-        i = last_improv = 0
-
-        last_best = populations[0][1]
-        best_idx = 0
+        i, update_i, best_idx = 0, 0, 0
+        current_best = populations[0][1]
 
         while limit > time.time() - start:
             i += 1
-            pop_idx = np.arange(population_size)
+            indexes = np.arange(population_size)
+            np.random.shuffle(indexes)
 
-            np.random.shuffle(pop_idx)
+            worst_i = np.argmax(populations[:,1])
+            worst_score = populations[worst_i][1]
 
-            # worst_idx = np.argmax(populations, lambda x: x[1])
-            # print(worst_idx)
-            print(np.argmax(populations[:, 1]))
-            # worst_sol, worst_score = pop[worst_idx]
+            result = self.combine(populations[indexes[0]][0], populations[indexes[1]][0])
 
-        #     sol1, sol1_score = pop[pop_idx[0]]
-        #     sol2, sol2_score = pop[pop_idx[1]]
-        #     sol = self.combine(sol1, sol2)
-        #     if with_local:
-        #         sol = ss.search(sol, inplace=True)[1]
-        #     sol_score = score(self.cities, sol)
-        #     print(f'{sol1_score} + {sol2_score} -> {sol_score}')
+            print(np.array(result))
 
-        #     too_similar = any(abs(sol_score - s) < min_diff for _, s in pop)
-        #     if sol_score < last_best:
-        #         pop[best_idx] = sol, sol_score
-        #     elif sol_score < worst_score and not too_similar:
-        #         pop[worst_idx] = sol, sol_score
+            # if local:
+            #     sol = ss.search(sol, inplace=True)
+            # result_score = self.ls.get_scores(np.array([result[0], result[1]]))
 
-        #     best_idx = argmin(pop, lambda x: x[1])
-        #     best_sol, best_score = pop[best_idx]
-        #     best_scores.append(best_score)
-        #     worst_scores.append(worst_score)
+            # if result_score < current_best:
+            #     populations[best_idx] = result, result_score
+            # elif result_score < worst_score and not any(abs(result_score - j) < score_threshold for j in populations[:,1]):
+            #     populations[worst_i] = result, result_score
 
-        #     if best_score < last_best:
-        #         last_best = best_score
-        #         last_improv = i
+            # best_result, best_score = populations[np.argmin(populations[:,1])]
+            # best_scores.append(best_score)
+            # worst_scores.append(worst_score)
 
-        #     if i - last_improv > patience:
-        #         break
+            # if best_score < current_best:
+            #     current_best = best_score
+            #     update_i = i
+
+            # if i - update_i > iterations_threshold:
+            #     break
 
         #     if plot:
         #         clear_output(wait=True)
@@ -315,12 +289,12 @@ class EvolutionSearch:
         #         plt.legend()
         #         plt.show()
 
-        # return time() - t_start, best_sol
+        return best_result
 
 
 if __name__ == '__main__':
-    paths = ["C:/Users/Maksim/Desktop/repos/PUT-WI-SI/IMO/LAB4/kroA200.txt",
-             "C:/Users/Maksim/Desktop/repos/PUT-WI-SI/IMO/LAB4/kroB200.txt"]
+    paths = ["C:/Users/Maksim/Desktop/repos/PUT-WI-SI/IMO/LAB5/kroA200.txt",
+             "C:/Users/Maksim/Desktop/repos/PUT-WI-SI/IMO/LAB5/kroB200.txt"]
 
     ls = LocalSearch()
     ls.read_data(paths[0])

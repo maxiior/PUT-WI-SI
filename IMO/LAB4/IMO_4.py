@@ -76,7 +76,8 @@ class LocalSearch:
 
     def get_scores(self, matrix):
         matrix = deepcopy(matrix)
-        matrix += [matrix[0]]
+        matrix[0] += [matrix[0][0]]
+        matrix[1] += [matrix[1][0]]
         s1 = sum(self.distance_matrix[matrix[0][i], matrix[0][i+1]]
                  for i in range(len(matrix[0]) - 1))
         s2 = sum(self.distance_matrix[matrix[1][i], matrix[1][i+1]]
