@@ -224,9 +224,9 @@ class EvolutionSearch:
                     memory.append(c1[i])
                     c1[i] = -1
 
-        return self.ls.regret_heuristics([[i for i in cycles1[0] if i != -1], [i for i in cycles1[1] if i != -1]], memory)
+        return self.ls.regret_heuristics([[i for i in cycles1[0] if i != 0], [i for i in cycles1[1] if i != 0]], memory)
 
-    def search(self, population_size=20, limit=100, score_threshold=50, iterations_threshold=300, local=True):
+    def search(self, population_size=20, limit=100, score_threshold=50, iterations_threshold=300, local=False):
         ss = SteepestSearch(self.ls)
         populations = np.array([(i, self.ls.get_scores(i)) for i in [ss.search(
             self.ls.get_random_cycles()) for _ in tqdm(range(population_size))]])
@@ -239,7 +239,6 @@ class EvolutionSearch:
         print("INITIAL SCORE: ", best_score)
 
         while limit > time.time() - start:
-            print((time.time() - start)/limit)
             i += 1
             indexes = np.random.choice(np.arange(population_size), 2)
 
@@ -270,23 +269,31 @@ if __name__ == '__main__':
     paths = ["C:/Users/Maksim/Desktop/repos/PUT-WI-SI/IMO/LAB5/kroA200.txt",
              "C:/Users/Maksim/Desktop/repos/PUT-WI-SI/IMO/LAB5/kroB200.txt"]
 
-    times = [1226, 1336]
+    times = [122, 133]
 
     for i, path in enumerate(paths):
-        ls = LocalSearch()
-        ls.read_data(path)
+        scores = np.array([])
 
-        es = EvolutionSearch(ls)
-        cycles, score = es.search(limit=times[i])
+        for _ in range(10):
+            ls = LocalSearch()
+            ls.read_data(path)
 
-        print("FINAL SCORE: ", score)
-        print("============================")
+            es = EvolutionSearch(ls)
+            cycles, score = es.search(limit=times[i])
 
-        plt.subplots()
-        ls.make_visualizations(
-            cycles[0], color='blue')
-        ls.make_visualizations(
-            cycles[1], color='yellow')
-        plt.scatter(ls.coordinate_matrix[:, 1],
-                    ls.coordinate_matrix[:, 2], color='black')
-        plt.show()
+            scores = np.append(scores, score)
+            print(scores)
+
+            # print("FINAL SCORE: ", score)
+            # print("============================")
+
+            # plt.subplots()
+            # ls.make_visualizations(
+            #     cycles[0], color='blue')
+            # ls.make_visualizations(
+            #     cycles[1], color='yellow')
+            # plt.scatter(ls.coordinate_matrix[:, 1],
+            #             ls.coordinate_matrix[:, 2], color='black')
+            # plt.show()
+
+        print(np.min(scores), np.mean(scores), np.max(scores))
