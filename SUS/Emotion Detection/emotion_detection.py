@@ -61,16 +61,16 @@ class EmotionDetection:
         model.compile(loss='categorical_crossentropy', optimizer=Adam(
             lr=0.0001, decay=0.000001), metrics=['accuracy'])
 
-        emotion_model_info = model.fit_generator(
+        jmodel = model.fit_generator(
             train_generator,
             steps_per_epoch=28709 // 64,
             epochs=50,
             validation_data=validation_generator,
             validation_steps=7178 // 64)
 
-        model_json = model.to_json()
-        with open("model.json", "w") as json_file:
-            json_file.write(model_json)
+        jmodel = jmodel.to_json()
+        with open("model.json", "w") as jfile:
+            jfile.write(jmodel)
 
         model.save_weights('model.h5')
 
