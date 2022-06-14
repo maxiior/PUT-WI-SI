@@ -243,7 +243,8 @@ qsi.find_similar_photos_by_own_trained_model(path=path)
 
 
 # Korzystaliśmy ze zbioru zdjęć animals10, który zawiera około 30.000 zdjęć zwierząt w 10 kategoriach. Okroiliśmy ten zbiór do dwóch podzbiorów składających się z 2.000 zdjęć i 200 zdjęć,
-# aby ograniczyć czas uczenia modeli na tych zbiorach. W przypadku naszych podzbiorów, poszczególne kategorie składały się z równej liczby zdjęć.
+# aby ograniczyć czas uczenia modeli. W przypadku naszych podzbiorów, poszczególne kategorie składały się z równej liczby zdjęć. Próbowaliśmy zarówno szkolić model na 2.000 zdjęć
+# (1600 treninowych, 400 walidacyjnych) oraz 200 (160 treningowych, 40 walidacyjnych).
 
 # Wnioski
 # Pretrenowany model imagenet sprawdza się świetnie w poszukiwaniach najbliższych zdjęć i niemal w każdym przypadku podaje 5/5 zdjęć należących do tej samej kategorii co zdjęcie
