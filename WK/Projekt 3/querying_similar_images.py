@@ -1,52 +1,55 @@
-from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.layers import Flatten, Conv2D, Conv2DTranspose, LeakyReLU, BatchNormalization, Input, Dense, Reshape, Activation
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint
 import tensorflow.keras.backend as K
 import numpy as np
-from tqdm import tqdm_notebook as tqdm
-import pickle
 import os
+from keras.applications import VGG16
 from keras.models import load_model
 import matplotlib.pyplot as plt
-import pandas as pd
+from keras.preprocessing import image
+from keras.applications.imagenet_utils import preprocess_input
+from sklearn.decomposition import PCA
+import random
+from scipy.spatial import distance
 
 
 class QueryingSimilarImages:
+    # W konstruktorze zmienne height i width mówią do jakiego rozmiaru będziemy reskalować obrazy wchodzące do sieci cnn, a batch to rozmiar kubełka w sieci cnn,
+    # którego wyniki będą uśredniane
     def __init__(self, data_path, height=48, width=48, batch=16):
         self.model = None
-        self.data_path = data_path
         self.height = height
         self.width = width
         self.batch = batch
+        self.features = None
+        self.images = None
 
         datagen = ImageDataGenerator(rescale=1./255, validation_split=0.2)
 
+        # Wczytywanie danych traningowych podzielonych na kategorie względem folderów
         self.training_set = datagen.flow_from_directory(
-            self.data_path,
+            data_path,
             target_size=(height, width),
             batch_size=batch,
             class_mode='input',
             subset='training',
             shuffle=True)
 
+        # Wczytywanie danych walidacyjnych podzielonych na kategorie względem folderów
         self.validation_set = datagen.flow_from_directory(
-            self.data_path,
+            data_path,
             target_size=(height, width),
             batch_size=batch,
             class_mode='input',
             subset='validation',
             shuffle=False)
 
-    def eucledian_distance(self, x, y):
-        eucl_dist = np.linalg.norm(x - y)
-        return eucl_dist
-
-    def load_model(self, file='model.h5'):
-        self.model = load_model(file)
-
+    # Funkcja służąca do trenowania modelu na zbiorze danych podanym w konstruktorze
     def train_model(self, epochs=100):
+        # Architektura sieci została zainspirowana jednym z artykułów znajdujących się w Bibliografii
         model = Input(shape=(self.height, self.width, 3))
 
         encoder = Conv2D(32, (3, 3), padding='same',
@@ -103,80 +106,152 @@ class QueryingSimilarImages:
         self.model = Model(autoencoder.input,
                            autoencoder.get_layer('latent_space').output)
 
-    def get_embeddings(self, file='model.h5'):
-        if self.model == None:
-            self.load_model(file)
+    # Wczytywanie naszego własnego wytrenowanego modelu
+    def load_own_model(self, file='model.h5'):
+        self.model = load_model(file)
+
+    # Funkcja przeznaczona do wczytywania pojedynczego zdjęcia
+    def _load_image(self, path):
+        img = image.load_img(path, target_size=self.model.input_shape[1:3])
+        return img, preprocess_input(np.expand_dims(image.img_to_array(img), axis=0))
+
+    # Funkcja odpowiedzialna za znajdowanie najbardziej podobnych zdjęć, korzystając z naszego własnego wytrenowanego modelu
+    def find_similar_photos_by_own_trained_model(self, path=None, n_components=100):
+        # Jeżeli nie podaliśmy ścieżki to jest ona losowana spośród dostępnych w self.images
+        if path == None:
+            idx = int(len(self.images) * random.random())
+            path = self.images[idx]
         else:
-            self.train_model()
+            idx = len(self.images)
+            self.images.append(path)
 
-        X = []
-        indices = []
+        # Wykonujemy ekstrakcję cech na zdjęciach, używamy procedury PCA w celu ograniczenia zbędnych informacji i porównujemy odległość cosinusową pomiędzy wektorami
+        # cech zdjęć
+        features = []
+        for i, path in enumerate(self.images):
+            if i % int(len(self.images)/10) == 0:
+                print("{0}/{1}".format(i, len(self.images)))
+            _, x = self._load_image(path)
+            features.append(np.average(np.average(
+                self.model.predict(x)[0], axis=2), axis=0))
+        features = np.array(features)
+        pca = PCA(n_components=n_components)
+        pca.fit(features)
+        self.features = pca.transform(features)
 
-        for i in tqdm(range(len(os.listdir('./ALL')))):
-            try:
-                img_name = os.listdir('./ALL')[i]
-                img = load_img('./ALL/{}'.format(img_name),
-                               target_size=(self.width, self.height))
-                img = img_to_array(img) / 255.0
-                img = np.expand_dims(img, axis=0)
-                pred = self.model.predict(img)
-                pred = np.resize(pred, (16))
-                X.append(pred)
-                indices.append(img_name)
+        similar = [distance.cosine(self.features[idx], i)
+                   for i in self.features]
+        closest = sorted(range(len(similar)),
+                         key=lambda k: similar[k])[1:7]
 
-            except Exception as e:
-                print(img_name)
-                print(e)
+        # Wyznaczamy zdjęcia najbliższe temu zapisanego w path i wyświetlamy 5 najlepszych wyników
+        thumbs = []
+        for i in closest:
+            img = image.load_img(self.images[i])
+            img = img.resize((int(img.width * 100 / img.height), 100))
+            thumbs.append(img)
 
-        # Export the embeddings
-        embeddings = {'indices': indices, 'features': np.array(X)}
-        pickle.dump(embeddings,
-                    open('./image_embeddings.pickle', 'wb'))
+        images = np.concatenate([np.asarray(t) for t in thumbs], axis=1)
 
-    def calculate_similarity(self, img_name, file='model.h5'):
-        if self.model == None:
-            self.load_model(file)
+        plt.figure(figsize=(16, 12))
+        plt.title('Względem pierwszego zdjęcia zostało znalezione pięć kolejnych')
+        plt.imshow(images)
+        plt.show()
+
+    # Funkcja wczytująca pretrenowany model imagenet
+    def load_pretrained_model(self):
+        self.model = VGG16(weights='imagenet', include_top=True)
+
+    # Funkcja wczytująca ścieżki do poszczególnych zdjęć
+    def load_images_paths(self, path="./ALL/"):
+        self.images = [os.path.join(dp, f) for dp, _, filenames in os.walk(
+            path) for f in filenames if os.path.splitext(f)[1].lower() in ['.jpg', '.png', '.jpeg']]
+
+    # Funkcja przeznaczona do ekstrakcji cech ze wczytanych zdjęć
+    def _extracting_features(self):
+        extractor = Model(inputs=self.model.input,
+                          outputs=self.model.get_layer("fc2").output)
+
+        print("keeping {0} images to analyze".format(len(self.images)))
+
+        # Wykonujemy ekstrakcję cech na zdjęciach, używamy procedury PCA w celu ograniczenia zbędnych informacji i porównujemy odległość cosinusową pomiędzy wektorami
+        # cech zdjęć
+        features = []
+        for i, path in enumerate(self.images):
+            if i % int(len(self.images)/10) == 0:
+                print("{0}/{1}".format(i, len(self.images)))
+            _, x = self._load_image(path)
+            features.append(extractor.predict(x)[0])
+
+        print('finished extracting features for {0} images'.format(
+            len(self.images)))
+
+        features = np.array(features)
+        pca = PCA(n_components=100)
+        pca.fit(features)
+
+        self.features = pca.transform(features)
+
+    # Funkcja odpowiedzialna za znajdowanie najbardziej podobnych zdjęć, korzystając z pretrenowanego modelu
+    def find_similar_photos_by_pretrained_model(self, path=None):
+        # Jeżeli nie podaliśmy ścieżki to jest ona losowana spośród dostępnych w self.images
+        if path == None:
+            idx = int(len(self.images) * random.random())
+            path = self.images[idx]
         else:
-            self.train_model()
-            self.get_embeddings()
+            idx = len(self.images)
+            self.images.append(path)
 
-        img = load_img('./ALL/{}'.format(img_name),
-                       target_size=(self.height, self.width))
-        embeddings = pickle.load(open('image_embeddings.pickle', 'rb'))
+        self._extracting_features()
 
-        img_similarity = []
+        similar = [distance.cosine(self.features[idx], i)
+                   for i in self.features]
+        closest = sorted(range(len(similar)),
+                         key=lambda k: similar[k])[1:7]
 
-        # Get actual image embedding
-        img = img_to_array(img) / 255.0
-        img = np.expand_dims(img, axis=0)
-        pred = self.model.predict(img)
-        pred = np.resize(pred, (16))
+        # Wyznaczamy zdjęcia najbliższe temu zapisanego w path i wyświetlamy 5 najlepszych wyników
+        thumbs = []
+        for i in closest:
+            img = image.load_img(self.images[i])
+            img = img.resize((int(img.width * 100 / img.height), 100))
+            thumbs.append(img)
 
-        # Calculate vectors distances
-        for i in tqdm(range(len(embeddings['indices']))):
-            img_name = embeddings['indices'][i]
-            dist = self.eucledian_distance(pred, embeddings['features'][i])
-            img_similarity.append(dist)
+        images = np.concatenate([np.asarray(t) for t in thumbs], axis=1)
 
-        imgs_result = pd.DataFrame(
-            {'img': embeddings['indices'], 'euclidean_distance': img_similarity})
+        self.images = self.images[:-1]
 
-        imgs_result = imgs_result.query('euclidean_distance > 0').sort_values(
-            by='euclidean_distance', ascending=True).reset_index(drop=True)
-
-        for i in range(10):
-            image = load_img('./ALL/{}'.format(imgs_result['img'].values[i]))
-            plt.imshow(image)
-            plt.show()
-            print('Euclidean Distance: {}'.format(
-                imgs_result['euclidean_distance'].values[i]))
+        plt.figure(figsize=(16, 12))
+        plt.title('Względem pierwszego zdjęcia zostało znalezione pięć kolejnych')
+        plt.imshow(images)
+        plt.show()
 
 
-qsi = QueryingSimilarImages("./images", height=256, width=256)
-qsi.train_model(epochs=50)
-# qsi.get_embeddings()
-# qsi.calculate_similarity(
-#     "OIP-Wa4llvzpHTyXgVb40_r02AHaGL.jpeg")
+path = "./images/mikhail-vasilyev-130018-unsplash.jpg"
 
+# W folderze data mieliśmy 10 folderów przechowujących 10 kategorii zdjęć
+qsi = QueryingSimilarImages("./data", height=256, width=256)
+# W folderze images mieliśmy wszystkie zdjęcia ze wszystkich kategorii połączone ze sobą w jeden zbiór
+qsi.load_images_paths(path="./images/")
+
+# Wyznaczanie najbardziej podobnych zdjęć za pomocą pretrenowanego modeli imagenet
+qsi.load_pretrained_model()
+qsi.find_similar_photos_by_pretrained_model(path=path)
+
+# Wyznaczanie najbardziej podobnych zdjęć za pomocą naszego wyszkolonego modelu
+qsi.load_own_model()
+qsi.find_similar_photos_by_own_trained_model(path=path)
+
+
+# Korzystaliśmy ze zbioru zdjęć animals10, który zawiera około 30.000 zdjęć zwierząt w 10 kategoriach. Okroiliśmy ten zbiór do dwóch podzbiorów składających się z 2.000 zdjęć i 200 zdjęć,
+# aby ograniczyć czas uczenia modeli na tych zbiorach. W przypadku naszych podzbiorów, poszczególne kategorie składały się z równej liczby zdjęć.
+
+# Wnioski
+# Pretrenowany model imagenet sprawdza się świetnie w poszukiwaniach najbliższych zdjęć i niemal w każdym przypadku podaje 5/5 zdjęć należących do tej samej kategorii co zdjęcie
+# dane na wejściu. W przypadku naszych wytrenowanych modeli na zdjęciach przeskalowanych do rozmiarów 24x24, 100x100 i 256x256, w każdym przypadku wyniki nie są najlepsze i często
+# model podaje tylko 2/5 lub 3/5 zdjęć z tej samej kategorii. Prawdopodobnie wynika to z braku odpowiednich zasobów, aby wystarczająco skutecznie wyszkolić daną sieć.
+
+
+# Bibliografia
 # https://www.kaggle.com/datasets/alessiocorrado99/animals10
 # https://www.analyticsvidhya.com/blog/2021/01/querying-similar-images-with-tensorflow/
+# https://www.youtube.com/watch?v=aACebENHlrs
