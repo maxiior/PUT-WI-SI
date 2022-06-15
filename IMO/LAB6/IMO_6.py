@@ -7,6 +7,7 @@ from copy import deepcopy
 import random
 import matplotlib.pyplot as plt
 import time
+from scipy import stats
 
 
 class LocalSearch:
@@ -268,7 +269,7 @@ if __name__ == '__main__':
              "C:/Users/Maksim/Desktop/repos/PUT-WI-SI/IMO/LAB6/kroB100.txt"]
 
     ls = LocalSearch()
-    ls.read_data(paths[0])
+    ls.read_data(paths[1])
 
     gs = GreedySearch(True, ls)
 
@@ -278,20 +279,22 @@ if __name__ == '__main__':
     scores = np.array([ls.get_scores(i) for i in cycles])
     best_cycles = cycles[np.argmin(scores)]
 
-    # touples = np.array([(scores[idx], ls.avg_edges_similarity(
-    #     i, cycles)) for idx, i in enumerate(cycles)])
-    # touples = np.array([i for i in touples if 1 not in i]).T
+    touples = np.array([(scores[idx], ls.compare_cycles_edges(
+        best_cycles, i)) for idx, i in enumerate(cycles)])
+    touples = np.array([i for i in touples if 1 not in i]).T
+    print(stats.pearsonr(touples[0], touples[1]))
+
+    touples = np.array([(scores[idx], ls.compare_cycles_vertexes(
+        best_cycles, i)) for idx, i in enumerate(cycles)])
+    touples = np.array([i for i in touples if 1 not in i]).T
+    print(stats.pearsonr(touples[0], touples[1]))
+
+    touples = np.array([(scores[idx], ls.avg_edges_similarity(
+        i, cycles)) for idx, i in enumerate(cycles)])
+    touples = np.array([i for i in touples if 1 not in i]).T
+    print(stats.pearsonr(touples[0], touples[1]))
 
     touples = np.array([(scores[idx], ls.avg_vertexes_similarity(
         i, cycles)) for idx, i in enumerate(cycles)])
     touples = np.array([i for i in touples if 1 not in i]).T
-
-    print(np.correlate(touples[0], touples[1]))
-
-    plt.scatter(touples[0], touples[1], s=12)
-    plt.xlabel("Score")
-    plt.ylabel("Podobieństwo")
-    plt.ylim((0, 1))
-    m, b = np.polyfit(touples[0], touples[1], 1)
-    plt.plot(touples[0], m*touples[0]+b, c='red')
-    plt.show()
+    print(stats.pearsonr(touples[0], touples[1]))
